@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FortiManager Study Tracker</title>
+<style>
+  :root {
+    --red: #EE3124;
+    --red-dark: #c4271e;
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --surface3: #2e2e2e;
+    --border: #333;
+    --text: #e8e8e8;
+    --text-muted: #888;
+    --text-dim: #555;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --blue: #3b82f6;
+    --star-on: #f59e0b;
+    --star-off: #444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; max-width: 440px; width: 90%; }
+  .modal h2 { color: var(--red); margin-bottom: 8px; font-size: 20px; }
+  .modal p { color: var(--text-muted); margin-bottom: 20px; font-size: 13px; }
+  .modal input[type="date"] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 14px; font-size: 15px; margin-bottom: 16px; }
+  .modal input[type="date"]:focus { outline: none; border-color: var(--red); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
+  .btn-primary { background: var(--red); color: #fff; }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+  /* HEADER */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+  .header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+  .logo-text { font-size: 15px; font-weight: 600; }
+  .logo-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .countdown-block { text-align: right; }
+  .countdown-days { font-size: 28px; font-weight: 700; color: var(--red); line-height: 1; }
+  .countdown-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+
+  /* BANNER */
+  .behind-banner { background: rgba(238,49,36,.12); border-bottom: 1px solid rgba(238,49,36,.3); padding: 8px 24px; text-align: center; font-size: 12px; color: #ff6b63; display: none; }
+  .behind-banner.visible { display: block; }
+
+  /* PROGRESS BAR */
+  .progress-section { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; }
+  .progress-inner { max-width: 1200px; margin: 0 auto; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+  .progress-pct { font-size: 13px; font-weight: 600; color: var(--text); }
+  .progress-bar-track { height: 6px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: var(--red); border-radius: 99px; transition: width .4s ease; }
+
+  /* MAIN */
+  main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* SECTION TITLES */
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* DOMAIN CARDS */
+  .domains-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .domain-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color .2s; }
+  .domain-card.behind { border-color: rgba(238,49,36,.5); }
+  .domain-card.complete { border-color: rgba(34,197,94,.3); }
+  .card-header { padding: 16px 20px 12px; display: flex; align-items: flex-start; gap: 12px; }
+  .domain-num { width: 32px; height: 32px; border-radius: 8px; background: var(--surface3); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+  .domain-card.behind .domain-num { background: rgba(238,49,36,.2); color: var(--red); }
+  .domain-card.complete .domain-num { background: rgba(34,197,94,.15); color: var(--green); }
+  .domain-title-area { flex: 1; min-width: 0; }
+  .domain-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .domain-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+  .badge-official { background: rgba(59,130,246,.15); color: #60a5fa; border: 1px solid rgba(59,130,246,.2); }
+  .badge-week { background: var(--surface3); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-behind { background: rgba(238,49,36,.15); color: var(--red); border: 1px solid rgba(238,49,36,.2); }
+  .status-pill { flex-shrink: 0; }
+  .pill { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600; }
+  .pill-not-started { background: var(--surface3); color: var(--text-muted); }
+  .pill-in-progress { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.2); }
+  .pill-complete { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.2); }
+
+  /* CARD BODY */
+  .card-body { padding: 0 20px 16px; }
+  .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .behind-warn { font-size: 11px; color: var(--red); margin-bottom: 10px; display: flex; align-items: center; gap: 4px; }
+
+  /* SESSION LOG */
+  .log-section { margin-bottom: 12px; }
+  .log-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .log-entries { max-height: 80px; overflow-y: auto; margin-bottom: 6px; }
+  .log-entry { font-size: 12px; color: var(--text-muted); padding: 3px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
+  .log-date { color: var(--text-dim); flex-shrink: 0; }
+  .log-empty { font-size: 12px; color: var(--text-dim); font-style: italic; }
+  .log-add { display: flex; gap: 6px; }
+  .log-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 5px 10px; font-size: 12px; }
+  .log-input:focus { outline: none; border-color: var(--red); }
+
+  /* SIGN-OFF */
+  .signoff-section { background: var(--surface2); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .signoff-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .signoff-input-row { display: flex; gap: 6px; margin-top: 8px; }
+  .signoff-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 5px 10px; font-size: 12px; font-family: monospace; }
+  .signoff-input:focus { outline: none; border-color: var(--red); }
+  .signoff-complete { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .signoff-date { font-size: 11px; color: var(--text-muted); }
+  .stars { display: flex; gap: 3px; }
+  .star { font-size: 18px; cursor: pointer; color: var(--star-off); transition: color .1s; }
+  .star.on { color: var(--star-on); }
+  .confidence-label { font-size: 11px; color: var(--text-muted); }
+
+  /* MEMORY PALACE */
+  .memory-panel { display: none; border-top: 1px solid var(--border); padding: 16px 20px; }
+  .memory-panel.open { display: block; }
+  .memory-panel h4 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .memory-visual { display: flex; justify-content: center; margin-bottom: 12px; }
+  .memory-visual svg { max-width: 100%; }
+  .memory-caption { font-size: 12px; color: var(--text-muted); text-align: center; font-style: italic; line-height: 1.6; padding: 0 12px; }
+
+  /* PROMPT LIBRARY */
+  .prompt-library { margin-bottom: 32px; }
+  .collapsible-toggle { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 12px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 500; }
+  .collapsible-toggle:hover { background: var(--surface2); }
+  .collapsible-content { display: none; border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; background: var(--surface); overflow: hidden; }
+  .collapsible-content.open { display: block; }
+  .prompt-domain-group { border-bottom: 1px solid var(--border); }
+  .prompt-domain-group:last-child { border-bottom: none; }
+  .prompt-domain-header { padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); background: var(--surface2); text-transform: uppercase; letter-spacing: .5px; }
+  .prompt-item { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; }
+  .prompt-item:last-child { border-bottom: none; }
+  .prompt-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .prompt-text { font-size: 11px; color: var(--text-muted); line-height: 1.5; flex: 1; }
+  .copy-btn { flex-shrink: 0; background: var(--surface3); border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .copy-btn:hover { background: var(--red); color: #fff; border-color: var(--red); }
+  .copy-btn.copied { background: var(--green); color: #fff; border-color: var(--green); }
+
+  /* RESOURCES */
+  .resources-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 32px; }
+  .resource-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; text-decoration: none; color: var(--text); display: flex; align-items: center; gap: 12px; transition: all .15s; }
+  .resource-card:hover { border-color: var(--red); background: var(--surface2); }
+  .resource-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--surface3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+  .resource-info { min-width: 0; }
+  .resource-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .resource-desc { font-size: 11px; color: var(--text-muted); }
+  .resource-arrow { color: var(--text-dim); flex-shrink: 0; }
+
+  /* CHEVRON */
+  .chevron { transition: transform .2s; }
+  .chevron.up { transform: rotate(180deg); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  @media (max-width: 600px) {
+    .domains-grid { grid-template-columns: 1fr; }
+    .header-inner { flex-wrap: wrap; height: auto; padding: 10px 0; gap: 8px; }
+    .countdown-days { font-size: 22px; }
+    main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- EXAM DATE MODAL -->
+<div class="modal-overlay" id="dateModal">
+  <div class="modal">
+    <h2>Set Your Exam Date</h2>
+    <p>Enter your FortiManager (FCP) exam date. This drives the countdown and schedule warnings.</p>
+    <input type="date" id="examDateInput" />
+    <button class="btn btn-primary" onclick="saveExamDate()" style="width:100%">Save &amp; Begin</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <div>
+        <div class="logo-text">FortiManager Study Tracker</div>
+        <div class="logo-sub">FCP — FortiManager 7.6</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="countdown-block">
+        <div class="countdown-days" id="countdownDays">—</div>
+        <div class="countdown-label">days to exam</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="resetExamDate()">Change Date</button>
+    </div>
+  </div>
+</header>
+
+<!-- BEHIND BANNER -->
+<div class="behind-banner" id="behindBanner">
+  ⚠ One or more domains are behind schedule. Review your pace and adjust accordingly.
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-section">
+  <div class="progress-inner">
+    <div class="progress-header">
+      <span class="progress-label">Overall Progress</span>
+      <span class="progress-pct" id="progressPct">0 / 8 domains complete</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- DOMAIN CARDS -->
+  <div class="section-title">Study Domains</div>
+  <div class="domains-grid" id="domainsGrid"></div>
+
+  <!-- NOTEBOOKLM PROMPTS -->
+  <div class="section-title">NotebookLM Prompt Library</div>
+  <div class="prompt-library">
+    <button class="collapsible-toggle" onclick="togglePrompts(this)">
+      <span>Study Podcast Prompts — All 8 Domains</span>
+      <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="collapsible-content" id="promptsContent"></div>
+  </div>
+
+  <!-- RESOURCES -->
+  <div class="section-title">Key Resources</div>
+  <div class="resources-grid" id="resourcesGrid"></div>
+
+</main>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const DOMAINS = [
+  {
+    id: 1,
+    name: 'Introduction and Initial Configuration',
+    official: 'Administration',
+    targetWeek: 'Week 1',
+    daysBeforeExam: 42,
+    memoryTitle: 'The Master Stencil',
+    memoryCaption: 'FortiManager is the stencil. Devices are the outputs. Change the source, not the copies.',
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- Stencil -->
+      <rect x="100" y="20" width="120" height="60" rx="4" fill="none" stroke="#EE3124" stroke-width="2" stroke-dasharray="6 3"/>
+      <rect x="120" y="35" width="30" height="14" rx="2" fill="#EE3124" opacity=".7"/>
+      <rect x="160" y="35" width="40" height="14" rx="2" fill="#EE3124" opacity=".7"/>
+      <text x="160" y="90" text-anchor="middle" fill="#888" font-size="10" font-family="sans-serif">Master Template</text>
+      <!-- Arrow -->
+      <line x1="160" y1="95" x2="160" y2="108" stroke="#555" stroke-width="1.5"/>
+      <path d="M155 105 L160 112 L165 105" fill="#555"/>
+      <!-- Devices row -->
+      <g>
+        <rect x="40" y="120" width="60" height="40" rx="4" fill="#242424" stroke="#333" stroke-width="1.5"/>
+        <rect x="55" y="130" width="20" height="8" rx="1" fill="#EE3124" opacity=".5"/>
+        <rect x="55" y="142" width="30" height="6" rx="1" fill="#EE3124" opacity=".3"/>
+      </g>
+      <g>
+        <rect x="130" y="120" width="60" height="40" rx="4" fill="#242424" stroke="#333" stroke-width="1.5"/>
+        <rect x="145" y="130" width="20" height="8" rx="1" fill="#EE3124" opacity=".5"/>
+        <rect x="145" y="142" width="30" height="6" rx="1" fill="#EE3124" opacity=".3"/>
+      </g>
+      <g>
+        <rect x="220" y="120" width="60" height="40" rx="4" fill="#242424" stroke="#333" stroke-width="1.5"/>
+        <rect x="235" y="130" width="20" height="8" rx="1" fill="#EE3124" opacity=".5"/>
+        <rect x="235" y="142" width="30" height="6" rx="1" fill="#EE3124" opacity=".3"/>
+      </g>
+      <!-- Connecting lines -->
+      <line x1="100" y1="112" x2="70" y2="120" stroke="#555" stroke-width="1" stroke-dasharray="3 2"/>
+      <line x1="160" y1="112" x2="160" y2="120" stroke="#555" stroke-width="1" stroke-dasharray="3 2"/>
+      <line x1="220" y1="112" x2="250" y2="120" stroke="#555" stroke-width="1" stroke-dasharray="3 2"/>
+    </svg>`
+  },
+  {
+    id: 2,
+    name: 'Administration and Management',
+    official: 'Administration',
+    targetWeek: 'Week 1–2',
+    daysBeforeExam: 35,
+    memoryTitle: 'The Control Tower',
+    memoryCaption: 'One operator, full visibility, clear lanes. ADOMs are the runways — traffic never crosses.',
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- Tower base -->
+      <rect x="140" y="60" width="40" height="80" rx="2" fill="#242424" stroke="#333" stroke-width="1.5"/>
+      <!-- Tower top -->
+      <rect x="120" y="40" width="80" height="30" rx="4" fill="#2e2e2e" stroke="#EE3124" stroke-width="1.5"/>
+      <!-- Tower windows -->
+      <rect x="133" y="48" width="12" height="10" rx="1" fill="#EE3124" opacity=".6"/>
+      <rect x="153" y="48" width="12" height="10" rx="1" fill="#3b82f6" opacity=".5"/>
+      <rect x="173" y="48" width="12" height="10" rx="1" fill="#EE3124" opacity=".3"/>
+      <!-- Ground -->
+      <line x1="20" y1="148" x2="300" y2="148" stroke="#333" stroke-width="1"/>
+      <!-- Aircraft / ADOMs -->
+      <g>
+        <rect x="30" y="130" width="50" height="16" rx="3" fill="#242424" stroke="#3b82f6" stroke-width="1"/>
+        <text x="55" y="142" text-anchor="middle" fill="#60a5fa" font-size="9" font-family="sans-serif">ADOM-A</text>
+      </g>
+      <g>
+        <rect x="100" y="130" width="50" height="16" rx="3" fill="#242424" stroke="#3b82f6" stroke-width="1"/>
+        <text x="125" y="142" text-anchor="middle" fill="#60a5fa" font-size="9" font-family="sans-serif">ADOM-B</text>
+      </g>
+      <g>
+        <rect x="190" y="130" width="50" height="16" rx="3" fill="#242424" stroke="#3b82f6" stroke-width="1"/>
+        <text x="215" y="142" text-anchor="middle" fill="#60a5fa" font-size="9" font-family="sans-serif">ADOM-C</text>
+      </g>
+      <g>
+        <rect x="258" y="130" width="42" height="16" rx="3" fill="#242424" stroke="#3b82f6" stroke-width="1"/>
+        <text x="279" y="142" text-anchor="middle" fill="#60a5fa" font-size="9" font-family="sans-serif">ADOM-D</text>
+      </g>
+      <!-- Runway lines -->
+      <line x1="55" y1="148" x2="55" y2="170" stroke="#555" stroke-width="1" stroke-dasharray="4 3"/>
+      <line x1="125" y1="148" x2="125" y2="170" stroke="#555" stroke-width="1" stroke-dasharray="4 3"/>
+      <line x1="215" y1="148" x2="215" y2="170" stroke="#555" stroke-width="1" stroke-dasharray="4 3"/>
+      <line x1="279" y1="148" x2="279" y2="170" stroke="#555" stroke-width="1" stroke-dasharray="4 3"/>
+      <!-- Lines to tower -->
+      <line x1="55" y1="130" x2="140" y2="65" stroke="#555" stroke-width="1" stroke-dasharray="3 2" opacity=".5"/>
+      <line x1="125" y1="130" x2="150" y2="65" stroke="#555" stroke-width="1" stroke-dasharray="3 2" opacity=".5"/>
+      <line x1="215" y1="130" x2="170" y2="65" stroke="#555" stroke-width="1" stroke-dasharray="3 2" opacity=".5"/>
+      <line x1="279" y1="130" x2="180" y2="65" stroke="#555" stroke-width="1" stroke-dasharray="3 2" opacity=".5"/>
+    </svg>`
+  },
+  {
+    id: 3,
+    name: 'Device Registration',
+    official: 'Device Manager',
+    targetWeek: 'Week 2',
+    daysBeforeExam: 28,
+    memoryTitle: 'The Bouncer and the Guest List',
+    memoryCaption: 'Every device must be on the list before it gets managed. Trust is explicit, never assumed.',
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- Door frame -->
+      <rect x="130" y="30" width="60" height="120" rx="2" fill="#242424" stroke="#EE3124" stroke-width="2"/>
+      <rect x="148" y="90" width="8" height="8" rx="4" fill="#EE3124"/>
+      <!-- Bouncer -->
+      <circle cx="100" cy="80" r="14" fill="#2e2e2e" stroke="#555" stroke-width="1.5"/>
+      <rect x="86" y="96" width="28" height="30" rx="4" fill="#2e2e2e" stroke="#555" stroke-width="1.5"/>
+      <!-- Clipboard -->
+      <rect x="112" y="88" width="20" height="26" rx="2" fill="#1a1a1a" stroke="#888" stroke-width="1"/>
+      <line x1="116" y1="96" x2="128" y2="96" stroke="#22c55e" stroke-width="1.5"/>
+      <line x1="116" y1="101" x2="128" y2="101" stroke="#22c55e" stroke-width="1.5"/>
+      <line x1="116" y1="106" x2="124" y2="106" stroke="#EE3124" stroke-width="1.5"/>
+      <!-- Devices queuing -->
+      <!-- Approved -->
+      <g transform="translate(200, 55)">
+        <rect width="40" height="28" rx="3" fill="#242424" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="20" y="18" text-anchor="middle" fill="#22c55e" font-size="9" font-family="sans-serif">✓ Auth</text>
+      </g>
+      <!-- Pending -->
+      <g transform="translate(200, 95)">
+        <rect width="40" height="28" rx="3" fill="#242424" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="20" y="18" text-anchor="middle" fill="#f59e0b" font-size="9" font-family="sans-serif">⏳ Wait</text>
+      </g>
+      <!-- Denied -->
+      <g transform="translate(200, 135)">
+        <rect width="40" height="28" rx="3" fill="#242424" stroke="#EE3124" stroke-width="1.5"/>
+        <text x="20" y="18" text-anchor="middle" fill="#EE3124" font-size="9" font-family="sans-serif">✗ Unauth</text>
+      </g>
+      <!-- Arrows -->
+      <line x1="200" y1="69" x2="192" y2="90" stroke="#555" stroke-width="1" marker-end="url(#arr)"/>
+      <!-- Guest list label -->
+      <text x="100" y="145" text-anchor="middle" fill="#555" font-size="10" font-family="sans-serif">Guest List</text>
+    </svg>`
+  },
+  {
+    id: 4,
+    name: 'Device-Level Configuration and Installation',
+    official: 'Device Manager',
+    targetWeek: 'Week 3',
+    daysBeforeExam: 21,
+    memoryTitle: 'The Print Queue',
+    memoryCaption: 'Editing is not deploying. The device only changes when you push the job.',
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- Screen / FM DB -->
+      <rect x="20" y="30" width="110" height="80" rx="6" fill="#242424" stroke="#EE3124" stroke-width="1.5"/>
+      <rect x="20" y="30" width="110" height="18" rx="6" fill="#EE3124" opacity=".8"/>
+      <text x="75" y="43" text-anchor="middle" fill="#fff" font-size="9" font-family="sans-serif" font-weight="600">FM Database</text>
+      <line x1="30" y1="62" x2="120" y2="62" stroke="#333" stroke-width="1"/>
+      <line x1="30" y1="72" x2="100" y2="72" stroke="#333" stroke-width="1"/>
+      <line x1="30" y1="82" x2="110" y2="82" stroke="#333" stroke-width="1"/>
+      <line x1="30" y1="92" x2="90" y2="92" stroke="#333" stroke-width="1"/>
+      <text x="75" y="122" text-anchor="middle" fill="#888" font-size="9" font-family="sans-serif">(Edit freely)</text>
+      <!-- Print button -->
+      <rect x="240" y="80" width="60" height="28" rx="6" fill="#EE3124"/>
+      <text x="270" y="98" text-anchor="middle" fill="#fff" font-size="11" font-family="sans-serif" font-weight="700">INSTALL</text>
+      <!-- Arrow (dotted = nothing flows until pushed) -->
+      <line x1="130" y1="70" x2="170" y2="70" stroke="#555" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <path d="M166 65 L174 70 L166 75" fill="none" stroke="#555" stroke-width="1.5"/>
+      <!-- Queue -->
+      <rect x="170" y="50" width="60" height="16" rx="3" fill="#2e2e2e" stroke="#333" stroke-width="1"/>
+      <text x="200" y="62" text-anchor="middle" fill="#555" font-size="9" font-family="sans-serif">Job #3</text>
+      <rect x="170" y="70" width="60" height="16" rx="3" fill="#2e2e2e" stroke="#EE3124" stroke-width="1" opacity=".7"/>
+      <text x="200" y="82" text-anchor="middle" fill="#EE3124" font-size="9" font-family="sans-serif">Job #4 ◀</text>
+      <rect x="170" y="90" width="60" height="16" rx="3" fill="#2e2e2e" stroke="#333" stroke-width="1" opacity=".4"/>
+      <text x="200" y="102" text-anchor="middle" fill="#555" font-size="9" font-family="sans-serif">Job #5</text>
+      <!-- Printer / FortiGate -->
+      <rect x="20" y="138" width="110" height="45" rx="6" fill="#242424" stroke="#555" stroke-width="1.5"/>
+      <rect x="20" y="138" width="110" height="14" rx="6" fill="#333"/>
+      <text x="75" y="149" text-anchor="middle" fill="#888" font-size="9" font-family="sans-serif">FortiGate</text>
+      <line x1="30" y1="162" x2="120" y2="162" stroke="#333" stroke-width="1"/>
+      <line x1="30" y1="170" x2="90" y2="170" stroke="#333" stroke-width="1"/>
+      <!-- Arrow down -->
+      <line x1="75" y1="112" x2="75" y2="136" stroke="#EE3124" stroke-width="1.5"/>
+      <path d="M70 133 L75 140 L80 133" fill="none" stroke="#EE3124" stroke-width="1.5"/>
+      <text x="90" y="126" fill="#EE3124" font-size="9" font-family="sans-serif">Push!</text>
+    </svg>`
+  },
+  {
+    id: 5,
+    name: 'Policy and Objects',
+    official: 'Policy and Objects',
+    targetWeek: 'Week 3–4',
+    daysBeforeExam: 14,
+    memoryTitle: 'The Legislation Chamber',
+    memoryCaption: 'Write the law once. Enforce it everywhere. Objects are the dictionary the laws depend on.',
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- Chamber / podium -->
+      <rect x="110" y="25" width="100" height="60" rx="4" fill="#242424" stroke="#EE3124" stroke-width="1.5"/>
+      <text x="160" y="50" text-anchor="middle" fill="#EE3124" font-size="10" font-family="sans-serif" font-weight="600">POLICY</text>
+      <text x="160" y="64" text-anchor="middle" fill="#888" font-size="9" font-family="sans-serif">PACKAGE</text>
+      <!-- Seats / districts -->
+      <g>
+        <rect x="20" y="120" width="55" height="40" rx="3" fill="#2e2e2e" stroke="#333" stroke-width="1"/>
+        <text x="47" y="138" text-anchor="middle" fill="#555" font-size="9" font-family="sans-serif">Device 1</text>
+        <text x="47" y="151" text-anchor="middle" fill="#22c55e" font-size="8" font-family="sans-serif">✓ Applied</text>
+      </g>
+      <g>
+        <rect x="85" y="120" width="55" height="40" rx="3" fill="#2e2e2e" stroke="#333" stroke-width="1"/>
+        <text x="112" y="138" text-anchor="middle" fill="#555" font-size="9" font-family="sans-serif">Device 2</text>
+        <text x="112" y="151" text-anchor="middle" fill="#22c55e" font-size="8" font-family="sans-serif">✓ Applied</text>
+      </g>
+      <g>
+        <rect x="150" y="120" width="55" height="40" rx="3" fill="#2e2e2e" stroke="#333" stroke-width="1"/>
+        <text x="177" y="138" text-anchor="middle" fill="#555" font-size="9" font-family="sans-serif">Device 3</text>
+        <text x="177" y="151" text-anchor="middle" fill="#22c55e" font-size="8" font-family="sans-serif">✓ Applied</text>
+      </g>
+      <g>
+        <rect x="215" y="120" width="55" height="40" rx="3" fill="#2e2e2e" stroke="#333" stroke-width="1"/>
+        <text x="242" y="138" text-anchor="middle" fill="#555" font-size="9" font-family="sans-serif">Device 4</text>
+        <text x="242" y="151" text-anchor="middle" fill="#22c55e" font-size="8" font-family="sans-serif">✓ Applied</text>
+      </g>
+      <!-- Object dictionary -->
+      <rect x="275" y="25" width="36" height="60" rx="3" fill="#2e2e2e" stroke="#3b82f6" stroke-width="1"/>
+      <text x="293" y="43" text-anchor="middle" fill="#60a5fa" font-size="8" font-family="sans-serif">OBJ</text>
+      <text x="293" y="55" text-anchor="middle" fill="#60a5fa" font-size="8" font-family="sans-serif">DICT</text>
+      <text x="293" y="67" text-anchor="middle" fill="#60a5fa" font-size="7" font-family="sans-serif">refs</text>
+      <!-- Arrows -->
+      <line x1="160" y1="85" x2="47" y2="120" stroke="#555" stroke-width="1" stroke-dasharray="4 2" opacity=".7"/>
+      <line x1="160" y1="85" x2="112" y2="120" stroke="#555" stroke-width="1" stroke-dasharray="4 2" opacity=".7"/>
+      <line x1="160" y1="85" x2="177" y2="120" stroke="#555" stroke-width="1" stroke-dasharray="4 2" opacity=".7"/>
+      <line x1="160" y1="85" x2="242" y2="120" stroke="#555" stroke-width="1" stroke-dasharray="4 2" opacity=".7"/>
+    </svg>`
+  },
+  {
+    id: 6,
+    name: 'Global ADOM and Central Management',
+    official: 'Advanced Configuration',
+    targetWeek: 'Week 5',
+    daysBeforeExam: 10,
+    memoryTitle: 'The Constitution',
+    memoryCaption: 'Global ADOM is the constitution. Local ADOMs govern themselves — within its limits.',
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- Constitution scroll -->
+      <rect x="100" y="15" width="120" height="70" rx="4" fill="#242424" stroke="#EE3124" stroke-width="2"/>
+      <text x="160" y="35" text-anchor="middle" fill="#EE3124" font-size="10" font-family="sans-serif" font-weight="700">GLOBAL ADOM</text>
+      <line x1="115" y1="45" x2="205" y2="45" stroke="#EE3124" stroke-width=".8" opacity=".5"/>
+      <text x="160" y="57" text-anchor="middle" fill="#888" font-size="8" font-family="sans-serif">Header Policy</text>
+      <text x="160" y="68" text-anchor="middle" fill="#888" font-size="8" font-family="sans-serif">Global Objects</text>
+      <text x="160" y="79" text-anchor="middle" fill="#888" font-size="8" font-family="sans-serif">Footer Policy</text>
+      <!-- Local law books -->
+      <g>
+        <rect x="20" y="120" width="60" height="55" rx="3" fill="#2e2e2e" stroke="#3b82f6" stroke-width="1.5"/>
+        <rect x="20" y="120" width="60" height="14" rx="3" fill="#3b82f6" opacity=".4"/>
+        <text x="50" y="131" text-anchor="middle" fill="#60a5fa" font-size="8" font-family="sans-serif">ADOM A</text>
+        <text x="50" y="148" text-anchor="middle" fill="#555" font-size="7" font-family="sans-serif">Local rules</text>
+        <text x="50" y="160" text-anchor="middle" fill="#555" font-size="7" font-family="sans-serif">within limits</text>
+      </g>
+      <g>
+        <rect x="130" y="120" width="60" height="55" rx="3" fill="#2e2e2e" stroke="#3b82f6" stroke-width="1.5"/>
+        <rect x="130" y="120" width="60" height="14" rx="3" fill="#3b82f6" opacity=".4"/>
+        <text x="160" y="131" text-anchor="middle" fill="#60a5fa" font-size="8" font-family="sans-serif">ADOM B</text>
+        <text x="160" y="148" text-anchor="middle" fill="#555" font-size="7" font-family="sans-serif">Local rules</text>
+        <text x="160" y="160" text-anchor="middle" fill="#555" font-size="7" font-family="sans-serif">within limits</text>
+      </g>
+      <g>
+        <rect x="240" y="120" width="60" height="55" rx="3" fill="#2e2e2e" stroke="#3b82f6" stroke-width="1.5"/>
+        <rect x="240" y="120" width="60" height="14" rx="3" fill="#3b82f6" opacity=".4"/>
+        <text x="270" y="131" text-anchor="middle" fill="#60a5fa" font-size="8" font-family="sans-serif">ADOM C</text>
+        <text x="270" y="148" text-anchor="middle" fill="#555" font-size="7" font-family="sans-serif">Local rules</text>
+        <text x="270" y="160" text-anchor="middle" fill="#555" font-size="7" font-family="sans-serif">within limits</text>
+      </g>
+      <!-- Arrows -->
+      <line x1="160" y1="85" x2="50" y2="120" stroke="#EE3124" stroke-width="1" stroke-dasharray="5 3" opacity=".6"/>
+      <line x1="160" y1="85" x2="160" y2="120" stroke="#EE3124" stroke-width="1" stroke-dasharray="5 3" opacity=".6"/>
+      <line x1="160" y1="85" x2="270" y2="120" stroke="#EE3124" stroke-width="1" stroke-dasharray="5 3" opacity=".6"/>
+    </svg>`
+  },
+  {
+    id: 7,
+    name: 'Diagnostics and Troubleshooting',
+    official: 'Troubleshooting',
+    targetWeek: 'Week 5',
+    daysBeforeExam: 10,
+    memoryTitle: "The Doctor's Differential",
+    memoryCaption: "Troubleshooting is diagnosis. Start broad, eliminate systematically, never guess.",
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- Whiteboard -->
+      <rect x="15" y="20" width="180" height="130" rx="4" fill="#1e2a1e" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="105" y="36" text-anchor="middle" fill="#22c55e" font-size="9" font-family="sans-serif" font-weight="600">DIFFERENTIAL DIAGNOSIS</text>
+      <!-- Decision tree -->
+      <text x="105" y="54" text-anchor="middle" fill="#888" font-size="9" font-family="sans-serif">System Level?</text>
+      <line x1="105" y1="58" x2="75" y2="74" stroke="#555" stroke-width="1"/>
+      <line x1="105" y1="58" x2="135" y2="74" stroke="#555" stroke-width="1"/>
+      <text x="65" y="84" text-anchor="middle" fill="#22c55e" font-size="8" font-family="sans-serif">✓ Rule out</text>
+      <text x="145" y="84" text-anchor="middle" fill="#EE3124" font-size="8" font-family="sans-serif">! Found</text>
+      <line x1="65" y1="88" x2="65" y2="100" stroke="#555" stroke-width="1"/>
+      <text x="65" y="110" text-anchor="middle" fill="#888" font-size="8" font-family="sans-serif">ADOM Level?</text>
+      <line x1="65" y1="114" x2="45" y2="126" stroke="#555" stroke-width="1"/>
+      <line x1="65" y1="114" x2="85" y2="126" stroke="#555" stroke-width="1"/>
+      <text x="36" y="136" text-anchor="middle" fill="#22c55e" font-size="7" font-family="sans-serif">✓ Rule out</text>
+      <text x="94" y="136" text-anchor="middle" fill="#EE3124" font-size="7" font-family="sans-serif">! Found</text>
+      <line x1="36" y1="140" x2="36" y2="148" stroke="#555" stroke-width="1"/>
+      <text x="36" y="156" text-anchor="middle" fill="#888" font-size="7" font-family="sans-serif">Device?</text>
+      <!-- Doctor -->
+      <circle cx="260" cy="80" r="18" fill="#2e2e2e" stroke="#555" stroke-width="1.5"/>
+      <text x="260" y="84" text-anchor="middle" fill="#888" font-size="16">🩺</text>
+      <rect x="242" y="100" width="36" height="36" rx="4" fill="#2e2e2e" stroke="#555" stroke-width="1.5"/>
+      <!-- Patient chart -->
+      <rect x="220" y="140" width="80" height="40" rx="3" fill="#242424" stroke="#333" stroke-width="1"/>
+      <text x="260" y="154" text-anchor="middle" fill="#555" font-size="8" font-family="sans-serif">Patient Chart</text>
+      <line x1="228" y1="162" x2="292" y2="162" stroke="#333" stroke-width="1"/>
+      <line x1="228" y1="170" x2="280" y2="170" stroke="#333" stroke-width="1"/>
+    </svg>`
+  },
+  {
+    id: 8,
+    name: 'Additional Configuration',
+    official: 'Advanced Configuration',
+    targetWeek: 'Week 6',
+    daysBeforeExam: 7,
+    memoryTitle: 'The Redundant Bridge',
+    memoryCaption: 'HA means the network never notices a failure. The backup is always ready, always watching.',
+    memorySVG: `<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="200" fill="#1a1a1a" rx="8"/>
+      <!-- River -->
+      <rect x="0" y="88" width="320" height="44" fill="#1a2a3a" opacity=".8"/>
+      <text x="160" y="114" text-anchor="middle" fill="#3b82f6" font-size="9" font-family="sans-serif" opacity=".5">≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈</text>
+      <!-- Bridge 1 (active) -->
+      <rect x="40" y="70" width="100" height="18" rx="3" fill="#2e2e2e" stroke="#22c55e" stroke-width="2"/>
+      <text x="90" y="83" text-anchor="middle" fill="#22c55e" font-size="9" font-family="sans-serif">Primary (Active)</text>
+      <!-- Bridge 2 (standby) -->
+      <rect x="180" y="70" width="100" height="18" rx="3" fill="#2e2e2e" stroke="#555" stroke-width="1.5" stroke-dasharray="4 2"/>
+      <text x="230" y="83" text-anchor="middle" fill="#555" font-size="9" font-family="sans-serif">Secondary (Standby)</text>
+      <!-- Control panel -->
+      <rect x="130" y="140" width="60" height="45" rx="4" fill="#242424" stroke="#EE3124" stroke-width="1.5"/>
+      <text x="160" y="155" text-anchor="middle" fill="#EE3124" font-size="8" font-family="sans-serif">HA CTRL</text>
+      <circle cx="147" cy="166" r="4" fill="#22c55e" opacity=".7"/>
+      <circle cx="160" cy="166" r="4" fill="#555"/>
+      <circle cx="173" cy="166" r="4" fill="#555"/>
+      <!-- Lines from bridges to control panel -->
+      <line x1="90" y1="88" x2="145" y2="140" stroke="#22c55e" stroke-width="1" opacity=".4"/>
+      <line x1="230" y1="88" x2="175" y2="140" stroke="#555" stroke-width="1" opacity=".4" stroke-dasharray="3 2"/>
+      <!-- Traffic arrows -->
+      <path d="M20 78 L36 78" stroke="#EE3124" stroke-width="2" marker-end="url(#a)"/>
+      <path d="M144 78 L165 78" stroke="#EE3124" stroke-width="2"/>
+      <path d="M278 78 L300 78" stroke="#EE3124" stroke-width="2"/>
+      <!-- Failover indicator -->
+      <text x="160" y="60" text-anchor="middle" fill="#f59e0b" font-size="8" font-family="sans-serif">⚡ Instant Failover</text>
+    </svg>`
+  }
+];
+
+const PROMPTS = [
+  {
+    domain: 1, title: 'Domain 1 — Introduction and Initial Configuration',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: what FortiManager is and the problem it solves at scale, key features and use cases, the management framework and task cycle, TCP/UDP ports used, initial configuration steps, and ADOM basics. Tone: conversational, technical but accessible. Format: podcast-style dialogue between two people — one explaining to the other who is preparing for the exam. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — Management Task Cycle', text: 'Create a focused audio explanation of the FortiManager management task cycle for the FCP exam. Cover: the deliberate separation between making a change and deploying it, how FortiManager maintains its own database independently of devices, the sequence from configuration to installation, and why this decoupled approach protects against error at scale. Use an analogy to make it memorable. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — ADOMs', text: 'Create a focused audio explanation of Administrative Domains (ADOMs) in FortiManager 7.6 for the FCP exam. Cover: what ADOMs are, why they exist, how they segment devices and policies, the difference between root ADOM and custom ADOMs, and when you would use them. Use a real-world analogy. Duration: 5 minutes.' },
+      { label: 'Deep Dive 3 — Sync Status', text: "Create a focused audio explanation of FortiManager sync status for the FCP exam. Cover: what sync status tracks, the named states (synchronised, out-of-sync, unknown, conflict), what causes drift between FortiManager and a device, and how to resolve each state. Emphasise why automatic override is dangerous and why human judgment is required. Duration: 5 minutes." },
+    ]
+  },
+  {
+    domain: 2, title: 'Domain 2 — Administration and Management',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: administrative profiles and roles, workspace mode vs normal mode, ADOM-level administration, admin account types, and how permissions are scoped. Tone: conversational, technical but accessible. Format: podcast-style dialogue. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — Workspace Mode', text: 'Create a focused audio explanation of workspace mode in FortiManager 7.6 for the FCP exam. Cover: what workspace mode is, why it exists, the difference between workspace mode and normal mode, the locking mechanism, and the approval workflow variant. Use an analogy — think document locking in collaborative editing. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — Admin Roles and Permissions', text: 'Create a focused audio explanation of administrative roles and permissions in FortiManager 7.6 for the FCP exam. Cover: the built-in admin profiles, how custom profiles are created, ADOM-level vs system-level permissions, and why least-privilege matters in a centralised management platform. Duration: 5 minutes.' },
+    ]
+  },
+  {
+    domain: 3, title: 'Domain 3 — Device Registration',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: how FortiGate devices register with FortiManager, the trust model, device-initiated vs FortiManager-initiated registration, the states a device can be in (unregistered, unauthorised, managed), and what information is required for registration. Format: podcast-style dialogue. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — Registration Methods', text: 'Create a focused audio explanation of the two FortiGate registration methods in FortiManager 7.6 for the FCP exam. Cover: device-initiated registration (FortiGate reaches out — what must be pre-configured), FortiManager-initiated discovery (what FortiManager needs to know), and the practical tradeoffs of each. Use a job application analogy. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — Device States', text: 'Create a focused audio explanation of device states in FortiManager 7.6 for the FCP exam. Cover: what each state means (unregistered, unauthorised, managed), what triggers transitions between states, and what an administrator must do at each stage. Emphasise why the trust model is explicit rather than automatic. Duration: 5 minutes.' },
+    ]
+  },
+  {
+    domain: 4, title: 'Domain 4 — Device-Level Configuration and Installation',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: the configuration workflow, the distinction between the FortiManager database, the device-level database, and the running config on the device, scripts (CLI and TCL), revision history, and the install process. Format: podcast-style dialogue. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — The Three Config Layers', text: 'Create a focused audio explanation of the three configuration layers in FortiManager 7.6 for the FCP exam. Cover: the FortiManager ADOM database, the device-level database, and the running configuration on the FortiGate itself — what each one is, how they relate, and what happens when they diverge. Use the print queue analogy. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — Scripts', text: 'Create a focused audio explanation of scripts in FortiManager 7.6 for the FCP exam. Cover: CLI scripts vs TCL scripts, where scripts run (device database vs running config vs FortiManager), script groups, and when you would use scripts instead of the GUI workflow. Duration: 5 minutes.' },
+      { label: 'Deep Dive 3 — Revision History', text: 'Create a focused audio explanation of revision history in FortiManager 7.6 for the FCP exam. Cover: what revision history tracks, how to use it to diagnose what changed and when, how to roll back, and its relationship to the install workflow. Duration: 5 minutes.' },
+    ]
+  },
+  {
+    domain: 5, title: 'Domain 5 — Policy and Objects',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: policy packages, object management, ADOM-scoped vs shared objects, policy imports, policy installation, and ADOM revisions. Format: podcast-style dialogue. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — Policy Packages', text: 'Create a focused audio explanation of policy packages in FortiManager 7.6 for the FCP exam. Cover: what a policy package is, how it differs from a policy on a device, how packages are assigned to devices or device groups, and the install workflow. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — Objects and Scope', text: 'Create a focused audio explanation of object management in FortiManager 7.6 for the FCP exam. Cover: what objects are, ADOM-level vs global objects, how objects are referenced in policies, what happens during import when object conflicts exist, and why object consistency matters. Duration: 5 minutes.' },
+      { label: 'Deep Dive 3 — ADOM Revisions', text: 'Create a focused audio explanation of ADOM revisions in FortiManager 7.6 for the FCP exam. Cover: what an ADOM revision is, how it differs from device revision history, when revisions are created, and how to use them for rollback and auditing. Duration: 5 minutes.' },
+    ]
+  },
+  {
+    domain: 6, title: 'Domain 6 — Global ADOM and Central Management',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: the purpose of the Global ADOM, global policies (header and footer), global objects, how global config propagates to child ADOMs, and the tradeoffs of central vs per-ADOM management. Format: podcast-style dialogue. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — Header and Footer Policies', text: 'Create a focused audio explanation of global header and footer policies in FortiManager 7.6 for the FCP exam. Cover: what they are, how they sandwich local ADOM policies, what use cases they serve (enforcing security baselines across all ADOMs), and how they interact with local policy packages. Use the constitution analogy. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — Global Objects', text: 'Create a focused audio explanation of global objects in FortiManager 7.6 for the FCP exam. Cover: how global objects are created, how they propagate to child ADOMs, what happens when a local object conflicts with a global one, and why global objects reduce configuration drift. Duration: 5 minutes.' },
+    ]
+  },
+  {
+    domain: 7, title: 'Domain 7 — Diagnostics and Troubleshooting',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: the systematic approach to troubleshooting FortiManager, the three levels (system, ADOM, device), common failure modes, key CLI diagnostic commands, and how to interpret logs. Format: podcast-style dialogue. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — Install Failures', text: 'Create a focused audio explanation of troubleshooting installation failures in FortiManager 7.6 for the FCP exam. Cover: the common causes of install failures, how to identify where in the install process the failure occurred, relevant CLI commands for diagnosis, and how to interpret install logs. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — Sync Issues', text: 'Create a focused audio explanation of troubleshooting sync issues in FortiManager 7.6 for the FCP exam. Cover: how to identify out-of-sync states, the CLI commands used to diagnose sync status, common causes of sync failure, and the correct resolution path for each. Duration: 5 minutes.' },
+    ]
+  },
+  {
+    domain: 8, title: 'Domain 8 — Additional Configuration',
+    items: [
+      { label: 'Overview', text: 'You are creating an audio study guide for the Fortinet FortiManager 7.6 exam (FCP level). Cover: FortiManager HA (modes, failover, synchronisation), FortiGuard service distribution via FortiManager, and advanced deployment scenarios. Format: podcast-style dialogue. Duration: approximately 10 minutes.' },
+      { label: 'Deep Dive 1 — FortiManager HA', text: 'Create a focused audio explanation of FortiManager High Availability for the FCP exam. Cover: the HA modes available, how FortiManager HA differs from FortiGate HA, what synchronises between nodes, how failover works, and how managed devices handle a FortiManager failover event. Duration: 5 minutes.' },
+      { label: 'Deep Dive 2 — FortiGuard via FortiManager', text: 'Create a focused audio explanation of FortiGuard service distribution via FortiManager 7.6 for the FCP exam. Cover: what FortiGuard services FortiManager can distribute, how FortiManager acts as a local FortiGuard server, the configuration required, and why this is useful in environments with restricted internet access. Duration: 5 minutes.' },
+    ]
+  }
+];
+
+const RESOURCES = [
+  { name: 'Fortinet Free Training', desc: 'training.fortinet.com', url: 'https://training.fortinet.com', icon: '🎓' },
+  { name: 'FM 7.6 Admin Guide', desc: 'docs.fortinet.com', url: 'https://docs.fortinet.com/document/fortimanager/7.6.0/administration-guide', icon: '📖' },
+  { name: 'FM 7.6 CLI Reference', desc: 'docs.fortinet.com', url: 'https://docs.fortinet.com/document/fortimanager/7.6.0/cli-reference', icon: '💻' },
+  { name: 'Devin Adams YouTube', desc: 'FortiManager playlist', url: 'https://www.youtube.com/watch?v=UkawFrXpqXU&list=PLp9LEzHcE6jCO0SG5vv9ceGMSZoExObhH', icon: '▶️' },
+  { name: 'FortiBytes YouTube', desc: '@FortiBytes channel', url: 'https://www.youtube.com/@FortiBytes', icon: '▶️' },
+  { name: "Bikash's Tech YouTube", desc: '@BikashsTech channel', url: 'https://www.youtube.com/@BikashsTech', icon: '▶️' },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+function loadState() {
+  const raw = localStorage.getItem('fmStudyTracker');
+  if (raw) return JSON.parse(raw);
+  return {
+    examDate: null,
+    firstOpened: new Date().toISOString().split('T')[0],
+    domains: DOMAINS.map(d => ({
+      id: d.id,
+      status: 'not_started',
+      signedOff: false,
+      completedDate: null,
+      confidenceRating: null,
+      sessionLog: []
+    }))
+  };
+}
+
+function saveState() {
+  localStorage.setItem('fmStudyTracker', JSON.stringify(state));
+}
+
+let state = loadState();
+
+// ─── SCHEDULE LOGIC ───────────────────────────────────────────────────────────
+
+function getTargetDate(domainId) {
+  if (!state.examDate) return null;
+  const d = DOMAINS.find(x => x.id === domainId);
+  const exam = new Date(state.examDate + 'T00:00:00');
+  exam.setDate(exam.getDate() - d.daysBeforeExam);
+  return exam;
+}
+
+function isBehind(domainId) {
+  const target = getTargetDate(domainId);
+  if (!target) return false;
+  const ds = state.domains.find(x => x.id === domainId);
+  if (ds.status === 'complete') return false;
+  return new Date() > target;
+}
+
+// ─── EXAM DATE MODAL ─────────────────────────────────────────────────────────
+
+function showDateModal() {
+  document.getElementById('dateModal').classList.remove('hidden');
+  const inp = document.getElementById('examDateInput');
+  const today = new Date().toISOString().split('T')[0];
+  inp.min = today;
+  if (state.examDate) inp.value = state.examDate;
+}
+
+function hideDateModal() {
+  document.getElementById('dateModal').classList.add('hidden');
+}
+
+function saveExamDate() {
+  const v = document.getElementById('examDateInput').value;
+  if (!v) return;
+  state.examDate = v;
+  saveState();
+  hideDateModal();
+  updateHeader();
+  renderDomains();
+}
+
+function resetExamDate() {
+  showDateModal();
+}
+
+// ─── HEADER ───────────────────────────────────────────────────────────────────
+
+function updateHeader() {
+  const el = document.getElementById('countdownDays');
+  if (!state.examDate) { el.textContent = '—'; return; }
+  const exam = new Date(state.examDate + 'T00:00:00');
+  const now = new Date(); now.setHours(0,0,0,0);
+  const diff = Math.ceil((exam - now) / 86400000);
+  el.textContent = diff > 0 ? diff : 0;
+
+  const complete = state.domains.filter(d => d.status === 'complete').length;
+  const pct = Math.round((complete / 8) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = `${complete} / 8 domains complete`;
+
+  const anyBehind = DOMAINS.some(d => isBehind(d.id));
+  document.getElementById('behindBanner').classList.toggle('visible', anyBehind);
+}
+
+// ─── DOMAIN CARDS ─────────────────────────────────────────────────────────────
+
+function renderDomains() {
+  const grid = document.getElementById('domainsGrid');
+  grid.innerHTML = '';
+  DOMAINS.forEach(d => {
+    const ds = state.domains.find(x => x.id === d.id);
+    const behind = isBehind(d.id);
+    const card = document.createElement('div');
+    card.className = 'domain-card' + (behind ? ' behind' : '') + (ds.status === 'complete' ? ' complete' : '');
+    card.id = 'card-' + d.id;
+    card.innerHTML = buildCardHTML(d, ds, behind);
+    grid.appendChild(card);
+  });
+}
+
+function buildCardHTML(d, ds, behind) {
+  const statusLabels = { not_started: 'Not Started', in_progress: 'In Progress', complete: 'Complete' };
+  const pillClass = { not_started: 'pill-not-started', in_progress: 'pill-in-progress', complete: 'pill-complete' };
+
+  const logEntries = ds.sessionLog.length
+    ? ds.sessionLog.map(e => `<div class="log-entry"><span class="log-date">${e.date}</span><span>${escHtml(e.note)}</span></div>`).join('')
+    : '<div class="log-empty">No sessions logged yet.</div>';
+
+  const signoffSection = buildSignoffSection(d, ds);
+  const actionsSection = buildActionsSection(d, ds);
+
+  return `
+    <div class="card-header">
+      <div class="domain-num">${d.id}</div>
+      <div class="domain-title-area">
+        <div class="domain-name">${d.name}</div>
+        <div class="domain-badges">
+          <span class="badge badge-official">${d.official}</span>
+          <span class="badge badge-week">${d.targetWeek}</span>
+          ${behind ? '<span class="badge badge-behind">Behind Schedule</span>' : ''}
+        </div>
+      </div>
+      <div class="status-pill"><span class="pill ${pillClass[ds.status]}">${statusLabels[ds.status]}</span></div>
+    </div>
+    <div class="card-body">
+      ${behind ? '<div class="behind-warn">⚠ This domain is behind schedule</div>' : ''}
+      <div class="card-actions">${actionsSection}</div>
+      <div class="log-section">
+        <div class="log-label">Session Log</div>
+        <div class="log-entries" id="log-${d.id}">${logEntries}</div>
+        <div class="log-add">
+          <input class="log-input" id="logInput-${d.id}" type="text" placeholder="Add session note…" maxlength="120" onkeydown="if(event.key==='Enter')addLog(${d.id})">
+          <button class="btn btn-ghost btn-sm" onclick="addLog(${d.id})">Add</button>
+        </div>
+      </div>
+      ${signoffSection}
+      <div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleMemory(${d.id})">🧠 Memory Palace</button>
+      </div>
+    </div>
+    <div class="memory-panel" id="memory-${d.id}">
+      <h4>🧠 Memory Palace — ${d.memoryTitle}</h4>
+      <div class="memory-visual">${d.memorySVG}</div>
+      <div class="memory-caption">"${d.memoryCaption}"</div>
+    </div>
+  `;
+}
+
+function buildActionsSection(d, ds) {
+  if (ds.status === 'not_started') {
+    return `<button class="btn btn-primary btn-sm" onclick="beginDomain(${d.id})">Begin</button>`;
+  }
+  if (ds.status === 'in_progress') {
+    return `<button class="btn btn-ghost btn-sm" onclick="requestSignoff(${d.id})">📋 Request Sign-Off</button>`;
+  }
+  if (ds.status === 'complete') {
+    return `<span style="font-size:12px;color:var(--green)">✓ Complete — ${ds.completedDate}</span>`;
+  }
+  return '';
+}
+
+function buildSignoffSection(d, ds) {
+  if (ds.status === 'not_started') return '';
+
+  if (ds.signedOff && ds.status === 'complete') {
+    const stars = [1,2,3,4,5].map(n =>
+      `<span class="star ${ds.confidenceRating >= n ? 'on' : ''}" onclick="setConfidence(${d.id},${n})">★</span>`
+    ).join('');
+    return `
+      <div class="signoff-section">
+        <div class="signoff-label">Sign-Off</div>
+        <div class="signoff-complete">
+          <span style="color:var(--green);font-size:12px">✓ Cleared</span>
+          <span class="signoff-date">${ds.completedDate}</span>
+          <div class="stars">${stars}</div>
+          <span class="confidence-label">confidence</span>
+        </div>
+      </div>`;
+  }
+
+  if (ds.status === 'in_progress') {
+    return `
+      <div class="signoff-section">
+        <div class="signoff-label">Sign-Off Gate</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Paste "DOMAIN ${d.id} CLEARED" here after Claude confirms mastery</div>
+        <div class="signoff-input-row">
+          <input class="signoff-input" id="signoffInput-${d.id}" type="text" placeholder="DOMAIN ${d.id} CLEARED" maxlength="30" onkeydown="if(event.key==='Enter')validateSignoff(${d.id})">
+          <button class="btn btn-primary btn-sm" onclick="validateSignoff(${d.id})">Validate</button>
+        </div>
+        <div id="signoffErr-${d.id}" style="font-size:11px;color:var(--red);margin-top:5px;display:none">Phrase doesn't match. Expected: DOMAIN ${d.id} CLEARED</div>
+      </div>`;
+  }
+
+  return '';
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
+
+function beginDomain(id) {
+  const ds = state.domains.find(x => x.id === id);
+  ds.status = 'in_progress';
+  saveState();
+  refreshCard(id);
+  updateHeader();
+}
+
+function requestSignoff(id) {
+  const d = DOMAINS.find(x => x.id === id);
+  const prompt = `I believe I'm ready for Domain ${id} — ${d.name} sign-off.\nPlease quiz me until you're satisfied I can teach this topic\nto someone who has never used FortiManager.`;
+  navigator.clipboard.writeText(prompt).then(() => {
+    showToast(`Sign-off prompt copied for Domain ${id}`);
+  });
+}
+
+function validateSignoff(id) {
+  const input = document.getElementById('signoffInput-' + id);
+  const errEl = document.getElementById('signoffErr-' + id);
+  const val = input.value.trim().toUpperCase();
+  const expected = `DOMAIN ${id} CLEARED`;
+  if (val === expected) {
+    const ds = state.domains.find(x => x.id === id);
+    ds.signedOff = true;
+    ds.status = 'complete';
+    ds.completedDate = new Date().toISOString().split('T')[0];
+    ds.confidenceRating = null;
+    saveState();
+    refreshCard(id);
+    updateHeader();
+    showToast(`Domain ${id} cleared! Rate your confidence.`);
+  } else {
+    errEl.style.display = 'block';
+    input.style.borderColor = 'var(--red)';
+    setTimeout(() => { errEl.style.display = 'none'; input.style.borderColor = 'var(--border)'; }, 3000);
+  }
+}
+
+function setConfidence(id, rating) {
+  const ds = state.domains.find(x => x.id === id);
+  ds.confidenceRating = rating;
+  saveState();
+  // Update just the stars without full re-render
+  const card = document.getElementById('card-' + id);
+  if (!card) return;
+  card.querySelectorAll('.star').forEach((s, i) => {
+    s.classList.toggle('on', rating >= i + 1);
+  });
+}
+
+function addLog(id) {
+  const input = document.getElementById('logInput-' + id);
+  const note = input.value.trim();
+  if (!note) return;
+  const ds = state.domains.find(x => x.id === id);
+  const today = new Date().toISOString().split('T')[0];
+  ds.sessionLog.push({ date: today, note });
+  saveState();
+  input.value = '';
+  const logEl = document.getElementById('log-' + id);
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-date">${today}</span><span>${escHtml(note)}</span>`;
+  if (logEl.querySelector('.log-empty')) logEl.innerHTML = '';
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function toggleMemory(id) {
+  const panel = document.getElementById('memory-' + id);
+  panel.classList.toggle('open');
+}
+
+function refreshCard(id) {
+  const d = DOMAINS.find(x => x.id === id);
+  const ds = state.domains.find(x => x.id === id);
+  const behind = isBehind(id);
+  const card = document.getElementById('card-' + id);
+  card.className = 'domain-card' + (behind ? ' behind' : '') + (ds.status === 'complete' ? ' complete' : '');
+  // Preserve memory panel state
+  const memOpen = card.querySelector('.memory-panel') && card.querySelector('.memory-panel').classList.contains('open');
+  card.innerHTML = buildCardHTML(d, ds, behind);
+  if (memOpen) card.querySelector('.memory-panel').classList.add('open');
+}
+
+// ─── PROMPT LIBRARY ───────────────────────────────────────────────────────────
+
+function renderPrompts() {
+  const container = document.getElementById('promptsContent');
+  container.innerHTML = PROMPTS.map(group => `
+    <div class="prompt-domain-group">
+      <div class="prompt-domain-header">${group.title}</div>
+      ${group.items.map((item, i) => `
+        <div class="prompt-item">
+          <div style="flex:1">
+            <div class="prompt-title">${item.label}</div>
+            <div class="prompt-text">${escHtml(item.text.substring(0, 120))}…</div>
+          </div>
+          <button class="copy-btn" onclick="copyPrompt(this, ${group.domain}, ${i})">Copy</button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function copyPrompt(btn, domainId, itemIdx) {
+  const group = PROMPTS.find(g => g.domain === domainId);
+  const text = group.items[itemIdx].text;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function togglePrompts(btn) {
+  const content = document.getElementById('promptsContent');
+  const chevron = btn.querySelector('.chevron');
+  content.classList.toggle('open');
+  chevron.classList.toggle('up', content.classList.contains('open'));
+}
+
+// ─── RESOURCES ────────────────────────────────────────────────────────────────
+
+function renderResources() {
+  const grid = document.getElementById('resourcesGrid');
+  grid.innerHTML = RESOURCES.map(r => `
+    <a class="resource-card" href="${r.url}" target="_blank" rel="noopener">
+      <div class="resource-icon">${r.icon}</div>
+      <div class="resource-info">
+        <div class="resource-name">${escHtml(r.name)}</div>
+        <div class="resource-desc">${escHtml(r.desc)}</div>
+      </div>
+      <svg class="resource-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M6 3 h5 v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  `).join('');
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+function init() {
+  renderDomains();
+  renderPrompts();
+  renderResources();
+  updateHeader();
+  if (!state.examDate) showDateModal();
+}
+
+init();
+</script>
+</body>
+</html>
